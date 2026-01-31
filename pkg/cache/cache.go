@@ -25,6 +25,7 @@ type Options struct {
 	Resync      time.Duration
 	TweakList   TweakListOptionsFunc
 	WaitHealthy func(ctx context.Context)
+	Transform   cache.TransformFunc
 }
 
 func NewCache(obj, listObj runtime.Object, client *client.Client, opts *Options) cache.SharedIndexInformer {
@@ -44,13 +45,25 @@ func NewCache(obj, listObj runtime.Object, client *client.Client, opts *Options)
 		waitHealthy: opts.WaitHealthy,
 	}
 
+	informer := cache.NewSharedIndexInformerWithOptions(
+		lw,
+		obj,
+		cache.SharedIndexInformerOptions{
+			ResyncPeriod: opts.Resync,
+			Indexers:     indexers,
+		},
+	)
+
+	if opts.Transform != nil {
+		if err := informer.SetTransform(opts.Transform); err != nil {
+			log.Errorf("Failed to set transform for %s: %v", client.GVR, err)
+		} else {
+			log.Infof("Transform function configured for %s", client.GVR)
+		}
+	}
+
 	return &deferredCache{
-		SharedIndexInformer: cache.NewSharedIndexInformer(
-			lw,
-			obj,
-			opts.Resync,
-			indexers,
-		),
+		SharedIndexInformer: informer,
 		deferredListWatcher: lw,
 	}
 }

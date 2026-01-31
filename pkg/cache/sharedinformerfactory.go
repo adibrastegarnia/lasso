@@ -28,6 +28,7 @@ type SharedCacheFactoryOptions struct {
 	// Determines how often metrics are gathered about how many resources are
 	// cached by gvk across all caches in the sharedCacheFactory
 	MetricsCollectionPeriod time.Duration
+	Transform               cache.TransformFunc
 }
 
 type sharedCacheFactory struct {
@@ -41,6 +42,7 @@ type sharedCacheFactory struct {
 	customTweakList     map[schema.GroupVersionKind]TweakListOptionsFunc
 	sharedClientFactory client.SharedClientFactory
 	healthcheck         healthcheck
+	transform           cache.TransformFunc
 
 	caches        map[schema.GroupVersionKind]cache.SharedIndexInformer
 	startedCaches map[schema.GroupVersionKind]bool
@@ -67,6 +69,7 @@ func NewSharedCachedFactory(sharedClientFactory client.SharedClientFactory, opts
 			callback: opts.HealthCallback,
 		},
 		metricsCollectionPeriod: opts.MetricsCollectionPeriod,
+		transform:               opts.Transform,
 	}
 
 	return factory
@@ -212,6 +215,7 @@ func (f *sharedCacheFactory) ForResourceKind(gvr schema.GroupVersionResource, ki
 		Resync:      resyncPeriod,
 		TweakList:   tweakList,
 		WaitHealthy: f.healthcheck.ensureHealthy,
+		Transform:   f.transform,
 	})
 	f.caches[gvk] = cache
 
