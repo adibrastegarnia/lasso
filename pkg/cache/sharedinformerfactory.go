@@ -25,6 +25,10 @@ type SharedCacheFactoryOptions struct {
 	KindTweakList  map[schema.GroupVersionKind]TweakListOptionsFunc
 	HealthCallback func(healthy bool)
 
+	// Transform function to apply to objects before storing in cache
+	// Used to strip large metadata fields like managedFields
+	Transform cache.TransformFunc
+
 	// Determines how often metrics are gathered about how many resources are
 	// cached by gvk across all caches in the sharedCacheFactory
 	MetricsCollectionPeriod time.Duration
@@ -41,6 +45,7 @@ type sharedCacheFactory struct {
 	customTweakList     map[schema.GroupVersionKind]TweakListOptionsFunc
 	sharedClientFactory client.SharedClientFactory
 	healthcheck         healthcheck
+	transform           cache.TransformFunc
 
 	caches        map[schema.GroupVersionKind]cache.SharedIndexInformer
 	startedCaches map[schema.GroupVersionKind]bool
@@ -66,6 +71,7 @@ func NewSharedCachedFactory(sharedClientFactory client.SharedClientFactory, opts
 		healthcheck: healthcheck{
 			callback: opts.HealthCallback,
 		},
+		transform:               opts.Transform,
 		metricsCollectionPeriod: opts.MetricsCollectionPeriod,
 	}
 
@@ -212,6 +218,7 @@ func (f *sharedCacheFactory) ForResourceKind(gvr schema.GroupVersionResource, ki
 		Resync:      resyncPeriod,
 		TweakList:   tweakList,
 		WaitHealthy: f.healthcheck.ensureHealthy,
+		Transform:   f.transform,
 	})
 	f.caches[gvk] = cache
 

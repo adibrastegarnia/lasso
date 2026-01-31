@@ -25,6 +25,7 @@ type Options struct {
 	Resync      time.Duration
 	TweakList   TweakListOptionsFunc
 	WaitHealthy func(ctx context.Context)
+	Transform   cache.TransformFunc
 }
 
 func NewCache(obj, listObj runtime.Object, client *client.Client, opts *Options) cache.SharedIndexInformer {
@@ -45,11 +46,14 @@ func NewCache(obj, listObj runtime.Object, client *client.Client, opts *Options)
 	}
 
 	return &deferredCache{
-		SharedIndexInformer: cache.NewSharedIndexInformer(
+		SharedIndexInformer: cache.NewSharedIndexInformerWithOptions(
 			lw,
 			obj,
-			opts.Resync,
-			indexers,
+			cache.SharedIndexInformerOptions{
+				ResyncPeriod: opts.Resync,
+				Indexers:     indexers,
+				Transform:    opts.Transform,
+			},
 		),
 		deferredListWatcher: lw,
 	}
