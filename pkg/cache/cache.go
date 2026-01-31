@@ -37,6 +37,10 @@ func NewCache(obj, listObj runtime.Object, client *client.Client, opts *Options)
 
 	opts = applyDefaultCacheOptions(opts)
 
+	if opts.Transform != nil {
+		log.Infof("Transform function configured for %s", client.GVK)
+	}
+
 	lw := &deferredListWatcher{
 		client:      client,
 		tweakList:   opts.TweakList,

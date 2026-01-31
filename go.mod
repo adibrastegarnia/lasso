@@ -1,8 +1,6 @@
 module github.com/rancher/lasso
 
-go 1.25.0
-
-toolchain go1.25.4
+go 1.22
 
 require (
 	github.com/prometheus/client_golang v1.20.5
